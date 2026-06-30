@@ -21,7 +21,7 @@ const saltRounds = 10;
 app.use(express.json());
 app.use(cors());
 app.use(bodyParser.urlencoded({ extended: true }));
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_for_development_do_not_use_in_prod';
 
 
 const db = new pg.Client({
@@ -39,8 +39,9 @@ app.post("/admin/signup", async(req,res)=>{
         return res.status(400).json({error: 'Name, email, password,airline and city are required.'});
     }
     try{
+        const hashedPassword = await bcrypt.hash(password_hash, saltRounds);
         const query=`INSERT INTO admin(name, email, password_hash, airline, city) VALUES ($1,$2,$3,$4,$5)`;
-        await db.query(query,[name,email,password_hash,airline,city]);
+        await db.query(query,[name,email,hashedPassword,airline,city]);
         res.status(200).json({
             success:true,
             message:"Sign up successful"
@@ -63,13 +64,13 @@ app.post("/crew/signup", async (req, res) => {
         }
 
         // Hash the password before storing it
-        //const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
         
         // Insert into crew_members with hire_date as current date and status as 'Active'
         const crewMemberResult = await db.query(
             `INSERT INTO crew_members (name, email, phone_number, hire_date, status, password, airline, city) 
              VALUES ($1, $2, $3, CURRENT_DATE, 'Active', $4, $5, $6) RETURNING id`,
-            [name, email, phone_number, password, airline, city]
+            [name, email, phone_number, hashedPassword, airline, city]
         );
 
         const crewMemberId = crewMemberResult.rows[0].id;
@@ -158,20 +159,22 @@ app.post('/login', async (req, res) => {
 
         // Verify password
         if(role==='admin'){
-            if (password!==result.rows[0].password_hash) {
+            const isMatch = await bcrypt.compare(password, result.rows[0].password_hash);
+            if (!isMatch) {
                 return res.status(401).json({ error: 'Invalid credentials.' });
             }
             // Remove sensitive data (e.g., password) before returning the user object
             delete user.password_hash;
         }else if(role==='crew'){
-            if (password!==result.rows[0].password) {
+            const isMatch = await bcrypt.compare(password, result.rows[0].password);
+            if (!isMatch) {
                 return res.status(401).json({ error: 'Invalid credentials.' });
             }
             // Remove sensitive data (e.g., password) before returning the user object
             delete user.password;
         }
         // Generate JWT token
-        const token = jwt.sign({ id: user.id, role }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: user.id, role }, JWT_SECRET, {
             expiresIn: '1h',
         });
 

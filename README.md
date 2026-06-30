@@ -106,12 +106,6 @@ If you discover any security vulnerabilities, please do not use the issue tracke
 - **Push Notifications:** Implement real-time alerts via SMS or Email for last-minute schedule changes.
 - **External API Integrations:** Fetch real-time flight status and weather data from external aviation APIs.
 
-## 👨‍💻 Author
-
-**Akshat**
-- GitHub: [@Akshat0359](https://github.com/Akshat0359)
-- Email: [akshat.prabhakar5903@gmail.com](mailto:akshat.prabhakar5903@gmail.com)
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
